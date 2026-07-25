@@ -1,0 +1,132 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@keyframes scan {
+  0% { top: 0; }
+  50% { top: 100%; }
+  100% { top: 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+}
+@keyframes float-delay {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+}
+@keyframes float-reverse {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(15px); }
+}
+@keyframes spin-slow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@theme {
+  --color-admin-outline-variant: #404944;
+  --color-admin-secondary-container: #214f41;
+  --color-admin-on-primary: #00382a;
+  --color-admin-tertiary-fixed: #c7eadd;
+  --color-admin-tertiary: #d3f6e8;
+  --color-admin-on-secondary: #04382b;
+  --color-admin-on-surface: #e1e3e0;
+  --color-admin-outline: #8a938e;
+  --color-admin-primary-fixed: #b8eed8;
+  --color-admin-on-primary-fixed: #002117;
+  --color-admin-surface-dim: #111413;
+  --color-admin-inverse-surface: #e1e3e0;
+  --color-admin-secondary: #a1d1bf;
+  --color-admin-on-secondary-fixed: #002118;
+  --color-admin-surface: #111413;
+  --color-admin-secondary-fixed: #bcedda;
+  --color-admin-primary-container: #a7ddc7;
+  --color-admin-surface-container-lowest: #0c0f0d;
+  --color-admin-background: #111413;
+  --color-admin-primary-fixed-dim: #9cd2bc;
+  --color-admin-tertiary-fixed-dim: #accec1;
+  --color-admin-surface-container: #1d201f;
+  --color-admin-secondary-fixed-dim: #a1d1bf;
+  --color-admin-on-error: #690005;
+  --color-admin-error-container: #93000a;
+  --color-admin-error: #ffb4ab;
+  --color-admin-on-error-container: #ffdad6;
+  --color-admin-on-secondary-container: #90bfae;
+  --color-admin-surface-container-highest: #333534;
+  --color-admin-on-primary-fixed-variant: #1a4f3f;
+  --color-admin-surface-bright: #373a38;
+  --color-admin-on-secondary-fixed-variant: #214f41;
+  --color-admin-inverse-primary: #356856;
+  --color-admin-on-primary-container: #306352;
+  --color-admin-surface-tint: #9cd2bc;
+  --color-admin-surface-container-high: #282b29;
+  --color-admin-on-tertiary-container: #416056;
+  --color-admin-surface-container-low: #191c1b;
+  --color-admin-on-surface-variant: #c0c9c3;
+  --color-admin-on-tertiary: #17362d;
+  --color-admin-tertiary-container: #b7d9cc;
+  --color-admin-on-background: #e1e3e0;
+  --color-admin-surface-variant: #333534;
+  --color-admin-on-tertiary-fixed-variant: #2e4d43;
+  --color-admin-primary: #c3fae3;
+  --color-admin-on-tertiary-fixed: #002019;
+  --color-admin-inverse-on-surface: #2e312f;
+
+  --font-body-md: "Inter", sans-serif;
+  --font-label-sm: "Inter", sans-serif;
+  --font-display-lg: "Inter", sans-serif;
+  --font-headline-lg: "Inter", sans-serif;
+  --font-body-lg: "Inter", sans-serif;
+  --font-headline-md: "Inter", sans-serif;
+  --font-label-md: "Inter", sans-serif;
+  --font-headline-lg-mobile: "Inter", sans-serif;
+
+  --text-body-md: 16px;
+  --text-body-md--line-height: 24px;
+  --text-label-sm: 12px;
+  --text-label-sm--line-height: 16px;
+  --text-display-lg: 48px;
+  --text-display-lg--line-height: 56px;
+  --text-headline-lg: 32px;
+  --text-headline-lg--line-height: 40px;
+  --text-body-lg: 18px;
+  --text-body-lg--line-height: 28px;
+  --text-headline-md: 24px;
+  --text-headline-md--line-height: 32px;
+  --text-label-md: 14px;
+  --text-label-md--line-height: 20px;
+  
+  --spacing-gutter: 24px;
+  --spacing-sm: 12px;
+  --spacing-xl: 64px;
+  --spacing-xs: 4px;
+  --spacing-base: 8px;
+  --spacing-lg: 40px;
+  --spacing-md: 24px;
+}
