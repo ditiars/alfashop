@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { Bell, ShoppingBag, X } from 'lucide-react';
+import { Bell, ShoppingBag, X, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function NotifAdmin() {
@@ -8,13 +8,17 @@ export default function NotifAdmin() {
   const [hasUnread, setHasUnread] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [showBatalPopup, setShowBatalPopup] = useState(false);
+  const [showStokPopup, setShowStokPopup] = useState(false);
   const [pesananBaru, setPesananBaru] = useState<any>(null);
   const [pesananBatal, setPesananBatal] = useState<any>(null);
+  const [stokMenipisData, setStokMenipisData] = useState<any>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   const lastOrderId = useRef<number | null>(null);
   const lastBatalTime = useRef<string | null>(null);
+  const notifiedStockIds = useRef<number[]>([]);
+  const isInitialStockCheck = useRef<boolean>(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const playSound = () => {
@@ -106,20 +110,70 @@ export default function NotifAdmin() {
       }
     };
 
+    const cekStok = async () => {
+      try {
+        const res = await fetch('/api/admin/stok-menipis');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            let hasNewLowStock = false;
+            let lastNewLowStock = null;
+            
+            data.forEach((produk: any) => {
+              if (!notifiedStockIds.current.includes(produk.id)) {
+                notifiedStockIds.current.push(produk.id);
+                
+                if (!isInitialStockCheck.current) {
+                  hasNewLowStock = true;
+                  lastNewLowStock = produk;
+                  setNotifications(prev => [{
+                    type: 'stok',
+                    id: produk.id,
+                    title: 'Stok Menipis!',
+                    message: `${produk.nama_produk} sisa ${produk.stok} pcs`,
+                    time: new Date(),
+                    data: produk
+                  }, ...prev].slice(0, 10));
+                }
+              }
+            });
+
+            if (hasNewLowStock && lastNewLowStock) {
+              setHasUnread(true);
+              setStokMenipisData(lastNewLowStock);
+              setShowStokPopup(true);
+              playSound();
+              setTimeout(() => setShowStokPopup(false), 4000);
+            }
+            
+            isInitialStockCheck.current = false;
+          }
+        }
+      } catch (error) {
+        console.error("Gagal cek stok menipis:", error);
+      }
+    };
+
     const interval = setInterval(() => {
       cekPesanan();
       cekBatal();
+      cekStok();
     }, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  const handleKlikDetail = (id: number, type: 'baru' | 'batal') => {
+  const handleKlikDetail = (id: number, type: 'baru' | 'batal' | 'stok') => {
     setTimeout(() => {
       if (type === 'baru') setShowPopup(false);
       if (type === 'batal') setShowBatalPopup(false);
+      if (type === 'stok') setShowStokPopup(false);
       setHasUnread(false);
       setIsDropdownOpen(false);
-      router.push(`/admin/pesanan/${id}`);
+      if (type === 'stok') {
+        router.push(`/admin/produk`);
+      } else {
+        router.push(`/admin/pesanan/${id}`);
+      }
     }, 50);
   };
 
@@ -163,10 +217,10 @@ export default function NotifAdmin() {
                   <div 
                     key={index}
                     onClick={() => handleKlikDetail(notif.id, notif.type)}
-                    className={`p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer flex items-start gap-3 transition-colors ${notif.type === 'baru' ? 'border-l-4 border-l-[#630ed4]' : 'border-l-4 border-l-red-500'}`}
+                    className={`p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer flex items-start gap-3 transition-colors ${notif.type === 'baru' ? 'border-l-4 border-l-[#630ed4]' : notif.type === 'batal' ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-orange-500'}`}
                   >
-                    <div className={`p-2 rounded-full shrink-0 ${notif.type === 'baru' ? 'bg-[#f1dbff] text-[#630ed4]' : 'bg-red-100 text-red-500'}`}>
-                      {notif.type === 'baru' ? <ShoppingBag size={18} /> : <X size={18} />}
+                    <div className={`p-2 rounded-full shrink-0 ${notif.type === 'baru' ? 'bg-[#f1dbff] text-[#630ed4]' : notif.type === 'batal' ? 'bg-red-100 text-red-500' : 'bg-orange-100 text-orange-500'}`}>
+                      {notif.type === 'baru' ? <ShoppingBag size={18} /> : notif.type === 'batal' ? <X size={18} /> : <AlertTriangle size={18} />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold text-gray-800 text-sm truncate">{notif.title}</h4>
@@ -238,6 +292,38 @@ export default function NotifAdmin() {
               onClick={(e) => {
                 e.stopPropagation(); 
                 setTimeout(() => setShowBatalPopup(false), 50);
+              }}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Popup Stok Menipis */}
+      {showStokPopup && (
+        <div className="fixed top-52 right-6 z-50 animate-in slide-in-from-right-8 fade-in duration-300">
+          <div 
+            onClick={() => handleKlikDetail(stokMenipisData?.id, 'stok')}
+            className="bg-white border-l-4 border-orange-500 shadow-xl rounded-xl p-4 w-80 cursor-pointer hover:bg-gray-50 flex items-start gap-4 transition-all"
+          >
+            <div className="bg-orange-100 p-2 rounded-full text-orange-500">
+              <AlertTriangle size={24} />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-bold text-gray-800 text-sm">Stok Menipis!</h4>
+              <p className="text-xs text-gray-500 mt-1">
+                Produk: <span className="font-semibold">{stokMenipisData?.nama_produk}</span>
+              </p>
+              <p className="text-xs font-bold text-orange-500 mt-1">
+                Sisa Stok: {stokMenipisData?.stok} pcs
+              </p>
+            </div>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation(); 
+                setTimeout(() => setShowStokPopup(false), 50);
               }}
               className="text-gray-400 hover:text-gray-600"
             >

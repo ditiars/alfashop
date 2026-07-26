@@ -24,6 +24,7 @@ export default function KasirPOSPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterKategori, setFilterKategori] = useState('Semua');
   const [uangDibayar, setUangDibayar] = useState<number | ''>('');
+  const [noWA, setNoWA] = useState('');
   const [isCheckout, setIsCheckout] = useState(false);
   const [pesanSukses, setPesanSukses] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -156,12 +157,20 @@ export default function KasirPOSPage() {
       setPesanSukses(true);
       setCart([]);
       setUangDibayar('');
+      setNoWA('');
       
       fetchProduk();
 
       const orderId = data.pesanan_id || data.id; 
       if (orderId) {
         window.open(`/nota?id=${orderId}`, '_blank');
+        if (noWA && noWA.trim() !== '') {
+          const notaUrl = `${window.location.origin}/nota?id=${orderId}`;
+          const text = `Halo, ini adalah struk digital belanja Anda di AlfaShop.\nTotal Belanja: Rp ${totalBelanja.toLocaleString('id-ID')}.\n\nLihat nota lengkap: ${notaUrl}\n\nTerima kasih telah berbelanja!`;
+          setTimeout(() => {
+            window.open(`https://wa.me/62${noWA.replace(/^0/, '')}?text=${encodeURIComponent(text)}`, '_blank');
+          }, 500);
+        }
       } else {
         showToast("Transaksi sukses, tapi ID Nota gagal ditarik.");
       }
@@ -366,6 +375,21 @@ export default function KasirPOSPage() {
             <div className="flex justify-between items-end mb-1">
               <span className="text-xl text-admin-on-surface font-bold">Total</span>
               <span className="text-3xl text-admin-primary font-black leading-none tracking-tight">Rp {totalBelanja.toLocaleString('id-ID')}</span>
+            </div>
+
+            {/* Input WhatsApp Pelanggan */}
+            <div className="flex flex-col gap-2 mt-2">
+              <span className="text-sm font-bold text-admin-on-surface-variant">Kirim Struk ke WA (Opsional)</span>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-admin-outline">+62</span>
+                <input 
+                  type="number" 
+                  value={noWA} 
+                  onChange={(e) => setNoWA(e.target.value)}
+                  placeholder="81234567890"
+                  className="w-full bg-admin-background border-2 border-admin-outline-variant/30 rounded-xl pl-12 pr-4 py-3 text-base font-bold text-admin-on-surface focus:outline-none focus:border-admin-secondary-container transition-colors"
+                />
+              </div>
             </div>
 
             {/* Input Pembayaran Custom */}

@@ -243,6 +243,17 @@ export default function PesananAdminPage() {
                           <MessageCircle size={18} />
                         </a>
                         <button 
+                          onClick={() => {
+                            const notaUrl = `${window.location.origin}/nota?id=${order.id}`;
+                            const text = `Halo ${order.nama_pelanggan}, ini adalah struk digital pesanan Anda.\nTotal: Rp ${order.total_harga.toLocaleString('id-ID')}.\n\nLihat nota lengkap: ${notaUrl}\n\nTerima kasih telah berbelanja di AlfaShop!`;
+                            window.open(`https://wa.me/62${(order.whatsapp || '').replace(/^0/, '')}?text=${encodeURIComponent(text)}`, '_blank');
+                          }}
+                          className="p-2 rounded-md hover:bg-admin-surface-container-highest text-green-600 transition-colors"
+                          title="Kirim Struk Digital ke WhatsApp"
+                        >
+                          <ReceiptText size={18} />
+                        </button>
+                        <button 
                           onClick={() => window.open(`/nota?id=${order.id}`, '_blank')}
                           className="p-2 rounded-md hover:bg-admin-surface-container-highest text-admin-on-surface-variant transition-colors"
                           title="Cetak Struk Thermal"

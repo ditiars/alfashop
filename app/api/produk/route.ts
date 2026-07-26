@@ -102,14 +102,14 @@ export async function POST(request: Request) {
     // Ambil kembali data yang baru di-insert untuk dikembalikan ke frontend
     const newProduct: any = await query('SELECT * FROM produk WHERE id = ?', [newId]);
     
-    let dbBundleItems = [];
+    let dbBundleItems: any[] = [];
     if (is_bundle) {
-      dbBundleItems = await query(`
+      dbBundleItems = (await query(`
         SELECT db.*, p.nama_produk, p.stok as stok_satuan, p.harga as harga_satuan 
         FROM detail_bundling db 
         JOIN produk p ON p.id = db.produk_id 
         WHERE db.bundle_id = ?
-      `, [newId]);
+      `, [newId])) as any[];
     }
 
     const responseData = {
@@ -161,7 +161,7 @@ export async function PUT(request: Request) {
     // Ambil data yang sudah di-update
     const updatedProduct: any = await query('SELECT * FROM produk WHERE id = ?', [id]);
     
-    let dbBundleItems = [];
+    let dbBundleItems: any = [];
     if (is_bundle) {
       dbBundleItems = await query(`
         SELECT db.*, p.nama_produk, p.stok as stok_satuan, p.harga as harga_satuan 
