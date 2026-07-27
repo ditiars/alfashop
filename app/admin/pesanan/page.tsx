@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Bell, Clock, MessageCircle, Truck, CheckCheck, RefreshCw, ReceiptText, Printer, FileText, Download, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import Link from 'next/link';
+import { generateReceiptText } from '@/lib/format';
 
 export default function PesananAdminPage() {
   const [pesananList, setPesananList] = useState<any[]>([]);
@@ -244,8 +245,20 @@ export default function PesananAdminPage() {
                         </a>
                         <button 
                           onClick={() => {
-                            const notaUrl = `${window.location.origin}/nota?id=${order.id}`;
-                            const text = `Halo ${order.nama_pelanggan}, ini adalah struk digital pesanan Anda.\nTotal: Rp ${order.total_harga.toLocaleString('id-ID')}.\n\nLihat nota lengkap: ${notaUrl}\n\nTerima kasih telah berbelanja di AlfaShop!`;
+                            const items = (order.item_pesanan || []).map((i: any) => ({
+                              name: i.name,
+                              quantity: i.quantity,
+                              price: i.price
+                            }));
+                            const subtotal = items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
+                            const text = generateReceiptText(
+                              order.id,
+                              order.created_at,
+                              items,
+                              subtotal,
+                              order.potongan_harga || 0,
+                              order.total_harga
+                            );
                             window.open(`https://wa.me/62${(order.whatsapp || '').replace(/^0/, '')}?text=${encodeURIComponent(text)}`, '_blank');
                           }}
                           className="p-2 rounded-md hover:bg-admin-surface-container-highest text-green-600 transition-colors"

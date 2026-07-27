@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, QrCode, Plus, Minus, Trash2, PackageOpen, Banknote, CheckCircle2, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { generateReceiptText } from '@/lib/format';
 
 // Daftar Kategori
 const DAFTAR_KATEGORI = ['Semua', 'Beras & Sembako', 'Minuman', 'Makanan Ringan', 'Mie & Instan', 'Sabun & Deterjen', 'Bumbu Dapur', 'Lainnya'];
@@ -165,8 +166,25 @@ export default function KasirPOSPage() {
       if (orderId) {
         window.open(`/nota?id=${orderId}`, '_blank');
         if (noWA && noWA.trim() !== '') {
-          const notaUrl = `${window.location.origin}/nota?id=${orderId}`;
-          const text = `Halo, ini adalah struk digital belanja Anda di AlfaShop.\nTotal Belanja: Rp ${totalBelanja.toLocaleString('id-ID')}.\n\nLihat nota lengkap: ${notaUrl}\n\nTerima kasih telah berbelanja!`;
+          const items = cart.map(i => ({
+            name: i.nama_produk,
+            quantity: i.quantity,
+            price: i.harga
+          }));
+          const subtotal = cart.reduce((acc, item) => acc + (item.harga * item.quantity), 0);
+          const discount = subtotal - totalBelanja;
+          
+          const text = generateReceiptText(
+            orderId,
+            new Date(),
+            items,
+            subtotal,
+            discount,
+            totalBelanja,
+            Number(uangDibayar || 0),
+            Number(uangDibayar || 0) - totalBelanja
+          );
+          
           setTimeout(() => {
             window.open(`https://wa.me/62${noWA.replace(/^0/, '')}?text=${encodeURIComponent(text)}`, '_blank');
           }, 500);

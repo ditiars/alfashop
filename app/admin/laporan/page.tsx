@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Download, TrendingUp, TrendingDown, ShoppingBag, Banknote, ReceiptText, Users, MoreVertical } from 'lucide-react';
+import { Download, TrendingUp, TrendingDown, ShoppingBag, Banknote, ReceiptText, Users, MoreVertical, Calendar } from 'lucide-react';
 
 export default function LaporanAdminPage() {
   const [semuaPesanan, setSemuaPesanan] = useState<any[]>([]);
@@ -9,12 +9,18 @@ export default function LaporanAdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   
   const [grafikPeriode, setGrafikPeriode] = useState<'Harian' | 'Mingguan' | 'Bulanan'>('Harian');
-  const [filterWaktu, setFilterWaktu] = useState<'7 Hari Terakhir' | '30 Hari Terakhir' | 'Kuartal Ini' | 'Tahun Ini'>('7 Hari Terakhir');
   const [isMounted, setIsMounted] = useState(false);
+
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [appliedStartDate, setAppliedStartDate] = useState<string>('');
+  const [appliedEndDate, setAppliedEndDate] = useState<string>('');
+  const [activeQuickFilter, setActiveQuickFilter] = useState<string>('7 Hari Terakhir');
 
   useEffect(() => {
     setIsMounted(true);
     fetchData();
+    handleQuickFilter('7 Hari Terakhir');
   }, []);
 
   const fetchData = async () => {
@@ -36,22 +42,77 @@ export default function LaporanAdminPage() {
     }
   };
 
+  const handleQuickFilter = (filter: string) => {
+    const today = new Date();
+    let start = new Date();
+    let end = new Date();
+
+    if (filter === 'Hari Ini') {
+      // today
+    } else if (filter === 'Kemarin') {
+      start.setDate(today.getDate() - 1);
+      end.setDate(today.getDate() - 1);
+    } else if (filter === '7 Hari Terakhir') {
+      start.setDate(today.getDate() - 7);
+    } else if (filter === '30 Hari Terakhir') {
+      start.setDate(today.getDate() - 30);
+    } else if (filter === 'Bulan Ini') {
+      start = new Date(today.getFullYear(), today.getMonth(), 1);
+    }
+
+    const formatYMD = (d: Date) => {
+      const offset = d.getTimezoneOffset();
+      const local = new Date(d.getTime() - (offset*60*1000));
+      return local.toISOString().split('T')[0];
+    };
+    const s = formatYMD(start);
+    const e = formatYMD(end);
+
+    setStartDate(s);
+    setEndDate(e);
+    setAppliedStartDate(s);
+    setAppliedEndDate(e);
+    setActiveQuickFilter(filter);
+  };
+
+  const handleApplyCustomDate = () => {
+    if (!startDate || !endDate) return alert('Silakan pilih rentang tanggal.');
+    if (new Date(endDate) < new Date(startDate)) {
+      return alert('Tanggal Selesai tidak boleh lebih awal dari Tanggal Mulai.');
+    }
+    setAppliedStartDate(startDate);
+    setAppliedEndDate(endDate);
+    setActiveQuickFilter('');
+  };
+
+  const handleReset = () => {
+    setStartDate('');
+    setEndDate('');
+    setAppliedStartDate('');
+    setAppliedEndDate('');
+    setActiveQuickFilter('Semua');
+  };
+
   const now = new Date();
 
   // Filter Data Berdasarkan Waktu
   const dataTampil = semuaPesanan.filter(p => {
-    const d = new Date(p.created_at);
-    const diffTime = Math.abs(now.getTime() - d.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    if (!appliedStartDate && !appliedEndDate) return true;
     
-    if (filterWaktu === '7 Hari Terakhir') return diffDays <= 7;
-    if (filterWaktu === '30 Hari Terakhir') return diffDays <= 30;
-    if (filterWaktu === 'Kuartal Ini') {
-      const currentQuarter = Math.floor(now.getMonth() / 3);
-      const orderQuarter = Math.floor(d.getMonth() / 3);
-      return currentQuarter === orderQuarter && now.getFullYear() === d.getFullYear();
+    const orderDate = new Date(p.created_at);
+    
+    if (appliedStartDate) {
+      const start = new Date(appliedStartDate);
+      start.setHours(0, 0, 0, 0);
+      if (orderDate < start) return false;
     }
-    if (filterWaktu === 'Tahun Ini') return d.getFullYear() === now.getFullYear();
+    
+    if (appliedEndDate) {
+      const end = new Date(appliedEndDate);
+      end.setHours(23, 59, 59, 999);
+      if (orderDate > end) return false;
+    }
+    
     return true;
   });
 
@@ -92,7 +153,7 @@ export default function LaporanAdminPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Laporan_AlfaShop_${filterWaktu.replace(/ /g, '_')}.csv`;
+    link.download = `Laporan_AlfaShop_${activeQuickFilter ? activeQuickFilter.replace(/ /g, '_') : `${appliedStartDate}_sd_${appliedEndDate}`}.csv`;
     link.click();
   };
 
@@ -105,25 +166,97 @@ export default function LaporanAdminPage() {
           <h2 className="text-3xl font-bold text-admin-on-surface tracking-tight">Laporan & Analitik</h2>
           <p className="text-sm font-medium text-admin-on-surface-variant mt-1">Ringkasan komprehensif kinerja toko.</p>
         </div>
-        <div className="flex gap-3 w-full md:w-auto">
-          <select 
-            value={filterWaktu}
-            onChange={(e) => setFilterWaktu(e.target.value as any)}
-            className="bg-admin-surface-container-high border border-admin-outline-variant/30 rounded-lg py-2.5 px-4 text-sm font-semibold text-admin-on-surface focus:outline-none focus:border-admin-primary-container focus:ring-1 focus:ring-admin-primary-container cursor-pointer"
-          >
-            <option>7 Hari Terakhir</option>
-            <option>30 Hari Terakhir</option>
-            <option>Kuartal Ini</option>
-            <option>Tahun Ini</option>
-          </select>
-          <button 
-            onClick={handleExportCSV}
-            className="bg-admin-surface-container-highest border border-admin-outline-variant/30 text-admin-on-surface py-2.5 px-5 rounded-lg text-sm font-bold hover:bg-admin-surface-bright transition-colors flex items-center gap-2 shadow-sm"
-          >
-            <Download size={16} /> Ekspor
-          </button>
+        <button 
+          onClick={handleExportCSV}
+          className="bg-admin-surface-container-highest border border-admin-outline-variant/30 text-admin-on-surface py-2.5 px-5 rounded-lg text-sm font-bold hover:bg-admin-surface-bright transition-colors flex items-center gap-2 shadow-sm shrink-0"
+        >
+          <Download size={16} /> Ekspor
+        </button>
+      </div>
+
+      {/* Date Range Filter Panel (Premium Redesign) */}
+      <div className="bg-[#1A2421]/80 backdrop-blur-xl border border-admin-outline-variant/20 p-5 rounded-2xl flex flex-col xl:flex-row justify-between items-start xl:items-center gap-5 shadow-lg relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-admin-primary-container/5 rounded-full -mr-32 -mt-32 blur-3xl transition-opacity opacity-50 group-hover:opacity-100"></div>
+        
+        {/* Quick Filters */}
+        <div className="flex flex-col gap-2 z-10 w-full xl:w-auto">
+          <span className="text-xs font-bold text-admin-on-surface-variant uppercase tracking-wider">Filter Cepat</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {['Hari Ini', 'Kemarin', '7 Hari Terakhir', '30 Hari Terakhir', 'Bulan Ini'].map((filter) => (
+              <button
+                key={filter}
+                onClick={() => handleQuickFilter(filter)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 border ${
+                  activeQuickFilter === filter
+                    ? 'bg-gradient-to-r from-admin-primary-container to-admin-primary border-transparent text-[#1A2421] shadow-md transform scale-[1.02]'
+                    : 'bg-admin-surface-container border-admin-outline-variant/20 text-admin-on-surface hover:border-admin-primary/50 hover:bg-admin-surface-bright'
+                }`}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {/* Custom Range */}
+        <div className="flex flex-col gap-2 z-10 w-full xl:w-auto">
+          <span className="text-xs font-bold text-admin-on-surface-variant uppercase tracking-wider">Atau Pilih Rentang Kustom</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center bg-admin-surface-container rounded-xl border border-admin-outline-variant/20 p-1 focus-within:border-admin-primary/50 focus-within:ring-1 focus-within:ring-admin-primary/50 transition-all">
+              <div className="px-3 text-admin-on-surface-variant flex items-center justify-center">
+                <Calendar size={16} />
+              </div>
+              <input 
+                type="date" 
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="bg-transparent py-1.5 pr-3 text-sm font-semibold text-admin-on-surface focus:outline-none w-[130px] sm:w-auto color-scheme-dark"
+                style={{ colorScheme: 'dark' }}
+              />
+            </div>
+            
+            <span className="text-admin-on-surface-variant font-medium">-</span>
+            
+            <div className="flex items-center bg-admin-surface-container rounded-xl border border-admin-outline-variant/20 p-1 focus-within:border-admin-primary/50 focus-within:ring-1 focus-within:ring-admin-primary/50 transition-all">
+              <div className="px-3 text-admin-on-surface-variant flex items-center justify-center">
+                <Calendar size={16} />
+              </div>
+              <input 
+                type="date" 
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="bg-transparent py-1.5 pr-3 text-sm font-semibold text-admin-on-surface focus:outline-none w-[130px] sm:w-auto color-scheme-dark"
+                style={{ colorScheme: 'dark' }}
+              />
+            </div>
+
+            <div className="flex items-center gap-2 ml-1">
+              <button 
+                onClick={handleApplyCustomDate}
+                className="bg-[#2D5A4C] text-[#F2FBF8] px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#3d7060] hover:shadow-lg transition-all active:scale-95"
+              >
+                Terapkan
+              </button>
+              <button 
+                onClick={handleReset}
+                className="bg-transparent text-admin-on-surface border border-admin-outline-variant/30 px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-admin-error-container/10 hover:text-admin-error hover:border-admin-error/30 transition-all active:scale-95"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
         </div>
       </div>
+
+      {dataTampil.length === 0 && !isLoading && (
+        <div className="bg-[#1A2421] border border-admin-outline-variant/20 rounded-xl p-12 flex flex-col items-center justify-center text-center mt-4 mb-4">
+          <Calendar size={48} className="text-admin-outline-variant/50 mb-4" />
+          <h3 className="text-xl font-bold text-admin-on-surface mb-2">Tidak ada data penjualan pada rentang tanggal yang dipilih</h3>
+          <p className="text-sm font-medium text-admin-on-surface-variant max-w-md">
+            Coba pilih rentang tanggal yang berbeda atau gunakan filter waktu yang lain untuk melihat riwayat pesanan.
+          </p>
+        </div>
+      )}
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
