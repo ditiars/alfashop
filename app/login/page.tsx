@@ -80,7 +80,7 @@ export default function LoginPage() {
 
   return (
     <div className="bg-[#f8f9fa] min-h-screen flex flex-col justify-center items-center px-4 py-8 font-sans text-[#191c1d]">
-      <main className="w-full max-w-[428px] flex flex-col">
+      <main className="w-full max-w-md flex flex-col">
         
         {/* --- Header / Logo --- */}
         <div className="flex flex-col items-center justify-center mb-8">

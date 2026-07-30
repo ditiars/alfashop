@@ -158,6 +158,15 @@ export default function DetailPesananPage() {
               <p className="font-medium text-admin-on-surface leading-relaxed text-sm">
                 {order.alamat}
               </p>
+              {order.latitude && order.longitude && (
+                <a 
+                  href={`https://maps.google.com/?q=${order.latitude},${order.longitude}`}
+                  target="_blank" rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors border border-blue-200"
+                >
+                  🗺️ Buka di Google Maps
+                </a>
+              )}
             </div>
           </div>
         </div>

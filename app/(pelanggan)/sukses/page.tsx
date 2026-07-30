@@ -10,7 +10,7 @@ export default function SuksesPage() {
     <div className="bg-[#f8f9fa] dark:bg-[#0f172a] text-[#191c1d] dark:text-slate-100 min-h-screen flex items-center justify-center overflow-hidden font-sans transition-colors duration-300">
       
       {/* --- Mobile Constraint Container --- */}
-      <main className="w-full max-w-[428px] min-h-screen relative flex flex-col items-center justify-center px-4 z-10">
+      <main className="w-full max-w-md min-h-screen relative flex flex-col items-center justify-center px-4 z-10">
         
         {/* --- Abstract Background Glows --- */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">

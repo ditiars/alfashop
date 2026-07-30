@@ -121,12 +121,4 @@ body {
   --text-headline-md--line-height: 32px;
   --text-label-md: 14px;
   --text-label-md--line-height: 20px;
-  
-  --spacing-gutter: 24px;
-  --spacing-sm: 12px;
-  --spacing-xl: 64px;
-  --spacing-xs: 4px;
-  --spacing-base: 8px;
-  --spacing-lg: 40px;
-  --spacing-md: 24px;
 }

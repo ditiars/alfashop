@@ -45,6 +45,8 @@ CREATE TABLE `pelanggan` (
   `nama_pelanggan` varchar(255) NOT NULL,
   `no_wa` varchar(50) NOT NULL,
   `alamat` text DEFAULT NULL,
+  `latitude` varchar(50) DEFAULT NULL,
+  `longitude` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -85,6 +87,8 @@ CREATE TABLE `pesanan` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `kode_voucher` varchar(50) DEFAULT NULL,
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `latitude` varchar(50) DEFAULT NULL,
+  `longitude` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -152,6 +156,18 @@ CREATE TABLE `voucher` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `kode` (`kode`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+-- 10. Table structure for table `variasi_produk`
+CREATE TABLE `variasi_produk` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `produk_id` int(11) NOT NULL,
+  `nama_variasi` varchar(100) NOT NULL,
+  `harga` int(11) NOT NULL,
+  `stok` int(11) NOT NULL DEFAULT 0,
+  `harga_grosir` int(11) DEFAULT NULL,
+  `min_grosir` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`produk_id`) REFERENCES `produk`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 COMMIT;

@@ -25,6 +25,8 @@ export default function CheckoutPage() {
     whatsapp: '', 
     address: '', 
     mapLink: '', 
+    latitude: '',
+    longitude: '',
     storeLocation: '' 
   });
 
@@ -61,6 +63,8 @@ export default function CheckoutPage() {
       whatsapp: initialWA,
       address: savedAddress,
       mapLink: savedMap,
+      latitude: '',
+      longitude: '',
       storeLocation: ''
     });
 
@@ -79,23 +83,33 @@ export default function CheckoutPage() {
 
 
     // 3. Ambil ongkir dari localStorage (disimpan saat homepage load dari /api/pengaturan)
-    //    Kalau belum tersimpan, fetch langsung
+    //    Gunakan cache dulu untuk kecepatan, tapi tetap fetch yang terbaru agar selalu update
     const cachedOngkir = localStorage.getItem('ongkir');
     if (cachedOngkir !== null) {
       setOngkirDB(parseInt(cachedOngkir) || 0);
-    } else {
-      fetch('/api/pengaturan')
-        .then(r => r.json())
-        .then(d => {
+    }
+    
+    // Selalu fetch terbaru dari server untuk menghindari cache usang (terutama jika tadi ongkir 0 karena API lama)
+    fetch('/api/pengaturan')
+      .then(r => r.json())
+      .then(d => {
+        if (d.ongkir !== undefined) {
           const nilai = parseInt(d.ongkir) || 0;
           setOngkirDB(nilai);
           localStorage.setItem('ongkir', String(nilai));
-        })
-        .catch(() => {});
-    }
+        }
+      })
+      .catch(() => {});
   }, []);
 
-  const subtotal = cartItems.reduce((acc, item) => acc + (item.harga * (item.qty || 1)), 0);
+  const getItemPrice = (item: any) => {
+    if (item.harga_grosir > 0 && item.min_grosir > 0 && item.qty >= item.min_grosir) {
+      return item.harga_grosir;
+    }
+    return item.harga;
+  };
+
+  const subtotal = cartItems.reduce((acc, item) => acc + (getItemPrice(item) * (item.qty || 1)), 0);
 
   useEffect(() => {
     if (isMounted && subtotal < 150000 && deliveryMode === 'antar') {
@@ -155,7 +169,7 @@ export default function CheckoutPage() {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
         const url = `https://www.google.com/maps?q=${lat},${lng}`;
-        setFormData({ ...formData, mapLink: url });
+        setFormData({ ...formData, mapLink: url, latitude: lat.toString(), longitude: lng.toString() });
         setLocLoading(false);
         alert("Lokasi GPS berhasil dikunci! 📍");
       },
@@ -232,6 +246,8 @@ export default function CheckoutPage() {
           items: cartItems,
           kode_voucher: kodeVoucher || null,
           potongan_harga: potonganVoucher,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
         }),
       });
 
@@ -356,10 +372,20 @@ export default function CheckoutPage() {
                 <div className="w-16 h-16 bg-[#f8f9fa] dark:bg-slate-800 rounded-xl border border-[#cfc2d4]/30 dark:border-slate-700 flex items-center justify-center overflow-hidden">
                   {item.gambar_url ? <img src={item.gambar_url} className="w-full h-full object-cover" /> : <ShoppingBag className="text-[#cfc2d4] dark:text-slate-600" size={24} />}
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-[15px] font-bold text-[#191c1d] dark:text-slate-100 line-clamp-1">{item.nama_produk}</h3>
-                  <p className="text-[16px] font-black text-[#b4136d] dark:text-pink-400 mt-0.5">Rp {item.harga.toLocaleString('id-ID')}</p>
-                  <div className="flex items-center justify-between mt-1.5">
+                <div className="flex-1 flex flex-col justify-between">
+                  <div className="flex justify-between items-start gap-2">
+                    <div>
+                      <h3 className="text-[14px] font-bold text-[#191c1d] dark:text-slate-100 leading-tight">{item.nama_produk}</h3>
+                      {item.is_bundle && (
+                        <div className="text-[10px] text-blue-600 dark:text-blue-400 font-bold bg-blue-100 dark:bg-blue-950/50 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800/50 w-max mt-1">PAKET HEMAT</div>
+                      )}
+                    </div>
+                    <button onClick={() => hapusItem(idx)} className="text-[#cfc2d4] dark:text-slate-500 hover:text-[#ba1a1a] dark:hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center gap-2 bg-[#f3f4f5] dark:bg-slate-800 px-1 py-1 rounded-lg border border-[#cfc2d4]/30 dark:border-slate-700">
                       <button onClick={() => updateQty(idx, -1)} className="text-[#500088] dark:text-[#c084fc] p-1 rounded-md hover:bg-[#cfc2d4]/50 dark:hover:bg-slate-700 transition-colors">
                         <Minus size={14} strokeWidth={3} />
@@ -369,7 +395,14 @@ export default function CheckoutPage() {
                         <Plus size={14} strokeWidth={3} />
                       </button>
                     </div>
-                    <button onClick={() => hapusItem(idx)} className="text-[#ba1a1a] dark:text-red-400 p-1.5 rounded-full hover:bg-[#ffdad6] dark:hover:bg-red-950/50 transition-colors ml-2"><Trash2 size={16} /></button>
+                    <div className="text-right">
+                      {item.harga_grosir > 0 && item.min_grosir > 0 && item.qty >= item.min_grosir && (
+                        <div className="text-[10px] font-bold text-orange-600 dark:text-orange-400 mb-0.5">HARGA GROSIR</div>
+                      )}
+                      <span className="text-[15px] font-black text-[#500088] dark:text-[#c084fc]">
+                        Rp {(getItemPrice(item) * (item.qty || 1)).toLocaleString('id-ID')}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -454,7 +487,7 @@ export default function CheckoutPage() {
       </section>
 
       {/* TOMBOL CHECKOUT STICKY */}
-      <div className="fixed bottom-[80px] left-0 right-0 z-40 bg-white/90 dark:bg-[#1e293b]/90 backdrop-blur-md p-4 max-w-[428px] mx-auto border-t border-[#cfc2d4]/30 dark:border-slate-700/80 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_12px_rgba(0,0,0,0.4)] transition-colors duration-300">
+      <div className="fixed bottom-[80px] left-0 right-0 z-40 bg-white/90 dark:bg-[#1e293b]/90 backdrop-blur-md p-4 w-full max-w-5xl mx-auto border-t border-[#cfc2d4]/30 dark:border-slate-700/80 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_12px_rgba(0,0,0,0.4)] transition-colors duration-300">
         <button 
           onClick={handleCheckout}
           disabled={loading || cartItems.length === 0}

@@ -261,7 +261,7 @@ export default function ImageUpload({ onUploadSuccess, defaultImage }: ImageUplo
               <Upload size={18} className="animate-bounce" /> Mengupload...
             </span>
           ) : (
-            <>Simpan Gambar ke Cloudinary</>
+            <>Simpan Gambar</>
           )}
         </button>
       )}

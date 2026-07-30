@@ -26,7 +26,15 @@ if (isTiDB) {
   config.ssl = { minVersion: 'TLSv1.2', rejectUnauthorized: true };
 }
 
-export const pool = mysql.createPool(config);
+declare global {
+  var _mysqlPool: mysql.Pool | undefined;
+}
+
+if (!global._mysqlPool) {
+  global._mysqlPool = mysql.createPool(config);
+}
+
+export const pool = global._mysqlPool;
 
 export async function query(sql: string, values?: any[]) {
   const [results] = await pool.execute(sql, values);

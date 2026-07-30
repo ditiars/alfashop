@@ -17,6 +17,7 @@ export default function DashboardPelanggan() {
   const [searchQuery, setSearchQuery] = useState('');
   
   const [popupItem, setPopupItem] = useState<any>(null);
+  const [selectedVariasi, setSelectedVariasi] = useState<any>(null);
   const [toastMessage, setToastMessage] = useState<{teks: string, tipe: 'sukses' | 'error' | ''}>({teks: '', tipe: ''});
 
   const daftarKategori = ['Semua', 'Beras & Sembako', 'Minuman', 'Makanan Ringan', 'Mie & Instan', 'Sabun & Deterjen', 'Bumbu Dapur', 'Lainnya'];
@@ -81,24 +82,55 @@ export default function DashboardPelanggan() {
     return () => clearInterval(interval);
   }, [banners.length]);
 
-  // 🔥 UPDATE: Logika Tambah ke Keranjang dengan Validasi Stok
+  // 🔥 UPDATE: Logika Tambah ke Keranjang dengan Validasi Stok & Variasi
   const tambahKeKeranjang = (langsungBeli = false, targetItem: any = null) => {
     const item = targetItem || popupItem;
-    if (!item || !isTokoBuka || item.stok <= 0) return; 
+    if (!item || !isTokoBuka) return; 
+
+    let itemToCart = { ...item };
+    
+    // Jika lewat modal dan punya variasi
+    if (!targetItem && item.variasi && item.variasi.length > 0) {
+      if (!selectedVariasi) {
+        setToastMessage({ teks: `Silakan pilih variasi terlebih dahulu!`, tipe: 'error' });
+        setTimeout(() => setToastMessage({teks: '', tipe: ''}), 3000);
+        return;
+      }
+      if (selectedVariasi.stok <= 0) {
+        setToastMessage({ teks: `Maaf, stok variasi ini habis!`, tipe: 'error' });
+        setTimeout(() => setToastMessage({teks: '', tipe: ''}), 3000);
+        return;
+      }
+      // Gabungkan data variasi ke item keranjang
+      itemToCart = {
+        ...item,
+        variasi_id: selectedVariasi.id,
+        nama_produk: `${item.nama_produk} - ${selectedVariasi.nama_variasi}`,
+        harga: selectedVariasi.harga,
+        stok: selectedVariasi.stok,
+        harga_grosir: selectedVariasi.harga_grosir,
+        min_grosir: selectedVariasi.min_grosir
+      };
+    } else {
+       if (item.stok <= 0) return;
+    }
 
     const keranjangLama = JSON.parse(localStorage.getItem('keranjang') || '[]');
-    const indexBarang = keranjangLama.findIndex((i: any) => i.id === item.id);
+    // Cari item berdasarkan id DAN variasi_id jika ada
+    const indexBarang = keranjangLama.findIndex((i: any) => 
+      i.id === itemToCart.id && i.variasi_id === itemToCart.variasi_id
+    );
     
     if (indexBarang !== -1) {
       // Cek apakah jumlah di keranjang sudah melebihi batas stok
-      if (keranjangLama[indexBarang].qty >= item.stok) {
-        setToastMessage({ teks: `Maaf, stok ${item.nama_produk} hanya tersisa ${item.stok}!`, tipe: 'error' });
+      if (keranjangLama[indexBarang].qty >= itemToCart.stok) {
+        setToastMessage({ teks: `Maaf, stok ${itemToCart.nama_produk} hanya tersisa ${itemToCart.stok}!`, tipe: 'error' });
         setTimeout(() => setToastMessage({teks: '', tipe: ''}), 3000);
         return;
       }
       keranjangLama[indexBarang].qty += 1;
     } else {
-      keranjangLama.push({ ...item, qty: 1 });
+      keranjangLama.push({ ...itemToCart, qty: 1 });
     }
     
     localStorage.setItem('keranjang', JSON.stringify(keranjangLama));
@@ -223,15 +255,18 @@ export default function DashboardPelanggan() {
           <h3 className="text-[16px] font-bold text-[#191c1d] dark:text-slate-100 transition-colors">Katalog Tersedia</h3>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
           {produkFilter.length === 0 ? (
             <div className="col-span-2 text-center text-gray-400 dark:text-slate-500 py-10 flex flex-col items-center">
               <PackageOpen size={48} className="mb-2 opacity-20 text-[#500088] dark:text-[#c084fc]" />
               <p className="text-sm font-bold">Produk tidak ditemukan</p>
             </div>
           ) : (
-            produkFilter.map((item) => (
-              <div key={item.id} onClick={() => setPopupItem(item)} className="bg-white dark:bg-[#1e293b] rounded-xl overflow-hidden shadow-sm flex flex-col border border-[#e1e3e4] dark:border-slate-700/80 active:scale-[0.98] transition-transform cursor-pointer group">
+            produkFilter.map((item) => {
+              const hasVariasi = item.variasi && item.variasi.length > 0;
+              const displayStok = hasVariasi ? Math.max(...item.variasi.map((v: any) => v.stok)) : item.stok;
+              return (
+              <div key={item.id} onClick={() => { setPopupItem(item); if (hasVariasi) setSelectedVariasi(item.variasi[0]); }} className="bg-white dark:bg-[#1e293b] rounded-xl overflow-hidden shadow-sm flex flex-col border border-[#e1e3e4] dark:border-slate-700/80 active:scale-[0.98] transition-transform cursor-pointer group">
                 <div className="w-full aspect-square relative bg-[#f3f4f5] dark:bg-slate-800 flex items-center justify-center p-2 overflow-hidden transition-colors">
                   {item.gambar_url ? (
                     <img alt={item.nama_produk} className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-500" src={item.gambar_url} />
@@ -253,8 +288,8 @@ export default function DashboardPelanggan() {
                       {item.is_promo && (
                         <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-950/50 px-2 py-0.5 rounded border border-orange-200 dark:border-orange-800/50">PROMO</span>
                       )}
-                      {item.stok > 0 ? (
-                        <span className="text-[10px] font-bold text-[#059669] dark:text-emerald-400 bg-[#ecfdf5] dark:bg-emerald-950/50 px-2 py-0.5 rounded border border-[#a7f3d0] dark:border-emerald-800/50">Sisa {item.stok}</span>
+                      {item.stok > 0 || displayStok > 0 ? (
+                        <span className="text-[10px] font-bold text-[#059669] dark:text-emerald-400 bg-[#ecfdf5] dark:bg-emerald-950/50 px-2 py-0.5 rounded border border-[#a7f3d0] dark:border-emerald-800/50">Tersedia</span>
                       ) : (
                         <span className="text-[10px] font-bold text-[#ba1a1a] dark:text-red-400 bg-[#fff1f2] dark:bg-red-950/50 px-2 py-0.5 rounded border border-[#fecaca] dark:border-red-800/50">Stok Habis</span>
                       )}
@@ -262,32 +297,50 @@ export default function DashboardPelanggan() {
                   </div>
 
                     <div>
-                      {item.is_promo && (
+                      {item.is_promo && !hasVariasi && (
                         <div className="text-[11px] text-gray-400 dark:text-slate-500 line-through mb-0.5 leading-none">Rp {item.harga_asli?.toLocaleString('id-ID')}</div>
                       )}
-                      <div className={`text-[15px] font-black mb-2 ${isTokoBuka && item.stok > 0 ? 'text-[#b4136d] dark:text-pink-400' : 'text-[#7e7383] dark:text-slate-500'}`}>Rp {item.harga.toLocaleString('id-ID')}</div>
+                      
+                      {hasVariasi ? (
+                         <div className={`text-[13px] font-black mb-2 ${isTokoBuka && displayStok > 0 ? 'text-[#b4136d] dark:text-pink-400' : 'text-[#7e7383] dark:text-slate-500'}`}>Mulai Rp {Math.min(...item.variasi.map((v:any) => v.harga)).toLocaleString('id-ID')}</div>
+                      ) : (
+                         <div className={`text-[15px] font-black mb-2 ${isTokoBuka && item.stok > 0 ? 'text-[#b4136d] dark:text-pink-400' : 'text-[#7e7383] dark:text-slate-500'}`}>Rp {item.harga.toLocaleString('id-ID')}</div>
+                      )}
                       
                       <div className="flex gap-2">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); tambahKeKeranjang(false, item); }}
-                          disabled={!isTokoBuka || item.stok <= 0}
-                          className={`flex-1 py-2.5 rounded-xl text-[13px] font-bold flex items-center justify-center transition-colors active:scale-95 ${isTokoBuka && item.stok > 0 ? 'bg-[#f1dbff] text-[#500088] dark:bg-purple-900/40 dark:text-[#c084fc] hover:bg-[#e4c2f7] dark:hover:bg-purple-900/60' : 'bg-[#f3f4f5] text-[#cfc2d4] dark:bg-slate-800 dark:text-slate-600'}`}
-                          title="Tambah ke Keranjang"
-                        >
-                          <ShoppingCart size={14} />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); tambahKeKeranjang(true, item); }}
-                          disabled={!isTokoBuka || item.stok <= 0}
-                          className={`flex-[2] py-2.5 rounded-xl text-[13px] font-bold flex items-center justify-center transition-colors active:scale-95 ${isTokoBuka && item.stok > 0 ? 'bg-[#500088] text-white dark:bg-[#c084fc] dark:text-slate-900 hover:bg-[#7a00cc] dark:hover:bg-[#a855f7]' : 'bg-[#cfc2d4] text-white dark:bg-slate-700 dark:text-slate-400'}`}
-                        >
-                          Beli
-                        </button>
+                        {hasVariasi ? (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setPopupItem(item); setSelectedVariasi(item.variasi[0]); }}
+                            disabled={!isTokoBuka || displayStok <= 0}
+                            className={`flex-1 py-2.5 rounded-xl text-[13px] font-bold flex items-center justify-center transition-colors active:scale-95 ${isTokoBuka && displayStok > 0 ? 'bg-[#500088] text-white dark:bg-[#c084fc] dark:text-slate-900 hover:bg-[#7a00cc] dark:hover:bg-[#a855f7]' : 'bg-[#cfc2d4] text-white dark:bg-slate-700 dark:text-slate-400'}`}
+                          >
+                            Pilih Variasi
+                          </button>
+                        ) : (
+                          <>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); tambahKeKeranjang(false, item); }}
+                              disabled={!isTokoBuka || item.stok <= 0}
+                              className={`flex-1 py-2.5 rounded-xl text-[13px] font-bold flex items-center justify-center transition-colors active:scale-95 ${isTokoBuka && item.stok > 0 ? 'bg-[#f1dbff] text-[#500088] dark:bg-purple-900/40 dark:text-[#c084fc] hover:bg-[#e4c2f7] dark:hover:bg-purple-900/60' : 'bg-[#f3f4f5] text-[#cfc2d4] dark:bg-slate-800 dark:text-slate-600'}`}
+                              title="Tambah ke Keranjang"
+                            >
+                              <ShoppingCart size={14} />
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); tambahKeKeranjang(true, item); }}
+                              disabled={!isTokoBuka || item.stok <= 0}
+                              className={`flex-[2] py-2.5 rounded-xl text-[13px] font-bold flex items-center justify-center transition-colors active:scale-95 ${isTokoBuka && item.stok > 0 ? 'bg-[#500088] text-white dark:bg-[#c084fc] dark:text-slate-900 hover:bg-[#7a00cc] dark:hover:bg-[#a855f7]' : 'bg-[#cfc2d4] text-white dark:bg-slate-700 dark:text-slate-400'}`}
+                            >
+                              Beli
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                 </div>
               </div>
-            ))
+            );
+            })
           )}
         </div>
       </div>
@@ -314,10 +367,14 @@ export default function DashboardPelanggan() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-[16px] font-bold text-[#191c1d] dark:text-slate-100 leading-tight">{popupItem.nama_produk}</h3>
-                    {popupItem.is_promo && (
+                    {popupItem.is_promo && (!popupItem.variasi || popupItem.variasi.length === 0) && (
                       <p className="text-[13px] text-gray-400 dark:text-slate-500 line-through mt-1">Rp {popupItem.harga_asli?.toLocaleString('id-ID')}</p>
                     )}
-                    <p className="text-[20px] font-black text-[#b4136d] dark:text-pink-400 mt-0.5">Rp {popupItem.harga.toLocaleString('id-ID')}</p>
+                    {popupItem.variasi && popupItem.variasi.length > 0 ? (
+                       <p className="text-[20px] font-black text-[#b4136d] dark:text-pink-400 mt-0.5">Rp {selectedVariasi ? selectedVariasi.harga.toLocaleString('id-ID') : Math.min(...popupItem.variasi.map((v:any) => v.harga)).toLocaleString('id-ID')}</p>
+                    ) : (
+                       <p className="text-[20px] font-black text-[#b4136d] dark:text-pink-400 mt-0.5">Rp {popupItem.harga.toLocaleString('id-ID')}</p>
+                    )}
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                       {popupItem.is_bundle && (
                         <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/50 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800/50">PAKET HEMAT</span>
@@ -329,7 +386,13 @@ export default function DashboardPelanggan() {
                         {popupItem.kategori || 'Umum'}
                       </span>
                       {/* 🔥 UPDATE: LABEL STOK DI POPUP */}
-                      {popupItem.stok > 0 ? (
+                      {popupItem.variasi && popupItem.variasi.length > 0 && selectedVariasi ? (
+                         selectedVariasi.stok > 0 ? (
+                           <span className="text-[10px] font-bold text-[#059669] dark:text-emerald-400 bg-[#ecfdf5] dark:bg-emerald-950/50 px-2 py-0.5 rounded border border-[#a7f3d0] dark:border-emerald-800/50">Sisa {selectedVariasi.stok}</span>
+                         ) : (
+                           <span className="text-[10px] font-bold text-[#ba1a1a] dark:text-red-400 bg-[#fff1f2] dark:bg-red-950/50 px-2 py-0.5 rounded border border-[#fecaca] dark:border-red-800/50">Habis</span>
+                         )
+                      ) : popupItem.stok > 0 ? (
                         <span className="text-[10px] font-bold text-[#059669] dark:text-emerald-400 bg-[#ecfdf5] dark:bg-emerald-950/50 px-2 py-0.5 rounded border border-[#a7f3d0] dark:border-emerald-800/50">Sisa {popupItem.stok}</span>
                       ) : (
                         <span className="text-[10px] font-bold text-[#ba1a1a] dark:text-red-400 bg-[#fff1f2] dark:bg-red-950/50 px-2 py-0.5 rounded border border-[#fecaca] dark:border-red-800/50">Stok Habis</span>
@@ -337,6 +400,35 @@ export default function DashboardPelanggan() {
                     </div>
                   </div>
                 </div>
+
+                {popupItem.variasi && popupItem.variasi.length > 0 && (
+                  <div className="flex flex-col gap-2 bg-white dark:bg-slate-700 p-3 rounded-xl border border-[#cfc2d4]/30 dark:border-slate-600">
+                    <h4 className="text-[13px] font-bold text-[#191c1d] dark:text-slate-100">Pilih Variasi:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {popupItem.variasi.map((v: any) => (
+                        <button
+                          key={v.id}
+                          onClick={() => setSelectedVariasi(v)}
+                          disabled={v.stok <= 0}
+                          className={`px-3 py-1.5 rounded-lg text-[13px] font-bold transition-colors border ${
+                            selectedVariasi?.id === v.id
+                              ? 'bg-[#500088] text-white border-[#500088] dark:bg-[#c084fc] dark:text-slate-900 dark:border-[#c084fc]'
+                              : v.stok <= 0 
+                                ? 'bg-gray-100 text-gray-400 border-gray-200 dark:bg-slate-800 dark:text-slate-600 dark:border-slate-700 cursor-not-allowed opacity-60'
+                                : 'bg-[#f3f4f5] text-[#4c4452] border-[#cfc2d4] dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600 hover:bg-[#e1e3e4] dark:hover:bg-slate-700'
+                          }`}
+                        >
+                          {v.nama_variasi}
+                        </button>
+                      ))}
+                    </div>
+                    {selectedVariasi && selectedVariasi.harga_grosir > 0 && selectedVariasi.min_grosir > 0 && (
+                      <p className="text-[11px] text-orange-600 dark:text-orange-400 font-medium mt-1">
+                        * Beli min {selectedVariasi.min_grosir} otomatis dapat harga grosir (Rp {selectedVariasi.harga_grosir.toLocaleString('id-ID')})
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <div className="bg-[#f3f4f5] dark:bg-slate-800/50 p-3 rounded-xl border border-[#cfc2d4]/20 dark:border-slate-700/80 min-h-[120px] flex flex-col">
                   {popupItem.is_bundle && popupItem.bundle_items?.length > 0 && (

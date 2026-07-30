@@ -39,7 +39,8 @@ export default function ManajemenProdukPage() {
     satuan: 'Ecer',
     stok: '',
     gambar_url: '', 
-    deskripsi: ''
+    deskripsi: '',
+    variasi: [] as { id?: number, nama_variasi: string, harga: string, stok: string, harga_grosir: string, min_grosir: string }[]
   };
 
   const [formData, setFormData] = useState(initialFormData);
@@ -71,7 +72,15 @@ export default function ManajemenProdukPage() {
       satuan: produk.satuan,
       stok: produk.stok?.toString() || '0',
       gambar_url: produk.gambar_url || '',
-      deskripsi: produk.deskripsi || ''
+      deskripsi: produk.deskripsi || '',
+      variasi: produk.variasi?.map((v: any) => ({
+        id: v.id,
+        nama_variasi: v.nama_variasi,
+        harga: v.harga.toString(),
+        stok: v.stok?.toString() || '0',
+        harga_grosir: v.harga_grosir ? v.harga_grosir.toString() : '',
+        min_grosir: v.min_grosir ? v.min_grosir.toString() : ''
+      })) || []
     });
     setIsModalOpen(true);
   };
@@ -95,7 +104,14 @@ export default function ManajemenProdukPage() {
         satuan: formData.satuan,
         stok: parseInt(formData.stok) || 0,
         gambar_url: formData.gambar_url || null,
-        deskripsi: formData.deskripsi || null
+        deskripsi: formData.deskripsi || null,
+        variasi: formData.variasi.map(v => ({
+          nama_variasi: v.nama_variasi,
+          harga: parseInt(v.harga),
+          stok: parseInt(v.stok) || 0,
+          harga_grosir: parseInt(v.harga_grosir) || null,
+          min_grosir: parseInt(v.min_grosir) || null
+        }))
       };
 
       if (editingId) {
@@ -494,6 +510,46 @@ export default function ManajemenProdukPage() {
                               placeholder="Tuliskan deskripsi singkat produk..." 
                               className="w-full bg-admin-surface-container-low border border-admin-outline-variant/50 rounded-xl px-4 py-3 text-sm text-admin-on-surface focus:border-admin-primary focus:ring-1 focus:ring-admin-primary outline-none resize-none transition-all"
                           ></textarea>
+                      </div>
+
+                      {/* Variasi Produk */}
+                      <div className="sm:col-span-2 border-t border-admin-outline-variant/30 pt-4 mt-2">
+                          <div className="flex justify-between items-center mb-4">
+                            <label className="block text-sm font-medium text-admin-on-surface">Variasi Produk (Opsional)</label>
+                            <button type="button" onClick={() => setFormData({...formData, variasi: [...formData.variasi, { nama_variasi: '', harga: '', stok: '', harga_grosir: '', min_grosir: '' }]})} className="bg-admin-primary-container text-admin-on-primary-container text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[16px]">add</span> Tambah Variasi
+                            </button>
+                          </div>
+                          
+                          {formData.variasi.map((v, index) => (
+                              <div key={index} className="bg-admin-surface-container-low p-4 rounded-xl border border-admin-outline-variant/50 mb-3 relative group">
+                                  <button type="button" onClick={() => { const newV = [...formData.variasi]; newV.splice(index, 1); setFormData({...formData, variasi: newV}); }} className="absolute -top-2 -right-2 bg-admin-error text-white w-6 h-6 rounded-full flex items-center justify-center shadow-md scale-0 group-hover:scale-100 transition-transform">
+                                      <span className="material-symbols-outlined text-[14px]">close</span>
+                                  </button>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                                      <div className="lg:col-span-1">
+                                          <label className="block text-xs font-medium text-admin-on-surface mb-1">Nama Variasi <span className="text-admin-error">*</span></label>
+                                          <input type="text" value={v.nama_variasi} onChange={(e) => { const newV = [...formData.variasi]; newV[index].nama_variasi = e.target.value; setFormData({...formData, variasi: newV}); }} className="w-full bg-white border border-admin-outline-variant/50 rounded-lg px-3 py-2 text-xs focus:border-admin-primary focus:outline-none" required placeholder="Cth: Merah" />
+                                      </div>
+                                      <div className="lg:col-span-1">
+                                          <label className="block text-xs font-medium text-admin-on-surface mb-1">Harga Jual <span className="text-admin-error">*</span></label>
+                                          <input type="number" value={v.harga} onChange={(e) => { const newV = [...formData.variasi]; newV[index].harga = e.target.value; setFormData({...formData, variasi: newV}); }} className="w-full bg-white border border-admin-outline-variant/50 rounded-lg px-3 py-2 text-xs focus:border-admin-primary focus:outline-none" required placeholder="0" />
+                                      </div>
+                                      <div className="lg:col-span-1">
+                                          <label className="block text-xs font-medium text-admin-on-surface mb-1">Stok Variasi</label>
+                                          <input type="number" value={v.stok} onChange={(e) => { const newV = [...formData.variasi]; newV[index].stok = e.target.value; setFormData({...formData, variasi: newV}); }} className="w-full bg-white border border-admin-outline-variant/50 rounded-lg px-3 py-2 text-xs focus:border-admin-primary focus:outline-none" placeholder="0" />
+                                      </div>
+                                      <div className="lg:col-span-1">
+                                          <label className="block text-xs font-medium text-admin-on-surface mb-1">Harga Grosir (Ops)</label>
+                                          <input type="number" value={v.harga_grosir} onChange={(e) => { const newV = [...formData.variasi]; newV[index].harga_grosir = e.target.value; setFormData({...formData, variasi: newV}); }} className="w-full bg-white border border-admin-outline-variant/50 rounded-lg px-3 py-2 text-xs focus:border-admin-primary focus:outline-none" placeholder="0" />
+                                      </div>
+                                      <div className="lg:col-span-1">
+                                          <label className="block text-xs font-medium text-admin-on-surface mb-1">Min. Grosir (Ops)</label>
+                                          <input type="number" value={v.min_grosir} onChange={(e) => { const newV = [...formData.variasi]; newV[index].min_grosir = e.target.value; setFormData({...formData, variasi: newV}); }} className="w-full bg-white border border-admin-outline-variant/50 rounded-lg px-3 py-2 text-xs focus:border-admin-primary focus:outline-none" placeholder="0" />
+                                      </div>
+                                  </div>
+                              </div>
+                          ))}
                       </div>
                   </div>
                   

@@ -18,6 +18,11 @@ export async function GET(request: Request) {
       ORDER BY p.id DESC
     `);
     
+    // Ambil semua detail variasi
+    const variasi: any = await query(`
+      SELECT * FROM variasi_produk
+    `);
+    
     // Ambil semua detail bundling jika ada produk bundle
     const bundles: any = await query(`
       SELECT db.*, p.nama_produk, p.stok as stok_satuan, p.harga as harga_satuan
@@ -31,6 +36,7 @@ export async function GET(request: Request) {
       const hargaAsli = p.harga;
       const hargaDiskon = isPromo ? Math.max(0, hargaAsli - p.promo_nominal) : hargaAsli;
       
+      const produkVariasi = variasi.filter((v: any) => v.produk_id === p.id);
       const is_bundle = p.is_bundle === 1 || p.is_bundle === true;
       let bundleItems = [];
       let calculatedStock = p.stok;
@@ -59,6 +65,7 @@ export async function GET(request: Request) {
         tersedia: p.tersedia === 1 || p.tersedia === true,
         is_bundle,
         bundle_items: bundleItems,
+        variasi: produkVariasi,
         harga_asli: hargaAsli,
         harga: hargaDiskon,
         is_promo: isPromo
@@ -76,7 +83,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { nama_produk, kategori, harga, satuan, stok, gambar_url, deskripsi, tersedia, is_bundle, bundle_items } = data;
+    const { nama_produk, kategori, harga, satuan, stok, gambar_url, deskripsi, tersedia, is_bundle, bundle_items, variasi } = data;
 
     // MySQL menggunakan 1 untuk true, 0 untuk false
     const statusTersedia = tersedia ? 1 : 0;
@@ -95,6 +102,15 @@ export async function POST(request: Request) {
         await query(
           'INSERT INTO detail_bundling (bundle_id, produk_id, jumlah) VALUES (?, ?, ?)',
           [newId, item.produk_id, item.jumlah]
+        );
+      }
+    }
+    
+    if (variasi && variasi.length > 0) {
+      for (const v of variasi) {
+        await query(
+          'INSERT INTO variasi_produk (produk_id, nama_variasi, harga, stok, harga_grosir, min_grosir) VALUES (?, ?, ?, ?, ?, ?)',
+          [newId, v.nama_variasi, v.harga, v.stok || 0, v.harga_grosir || null, v.min_grosir || null]
         );
       }
     }
@@ -130,7 +146,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const data = await request.json();
-    const { id, nama_produk, kategori, harga, satuan, stok, gambar_url, deskripsi, tersedia, is_bundle, bundle_items } = data;
+    const { id, nama_produk, kategori, harga, satuan, stok, gambar_url, deskripsi, tersedia, is_bundle, bundle_items, variasi } = data;
 
     if (!id) return NextResponse.json({ error: 'ID produk wajib ada' }, { status: 400 });
 
@@ -155,6 +171,17 @@ export async function PUT(request: Request) {
             [id, item.produk_id, item.jumlah]
           );
         }
+      }
+    }
+    
+    // Hapus variasi lama dan insert variasi baru
+    await query('DELETE FROM variasi_produk WHERE produk_id = ?', [id]);
+    if (variasi && variasi.length > 0) {
+      for (const v of variasi) {
+        await query(
+          'INSERT INTO variasi_produk (produk_id, nama_variasi, harga, stok, harga_grosir, min_grosir) VALUES (?, ?, ?, ?, ?, ?)',
+          [id, v.nama_variasi, v.harga, v.stok || 0, v.harga_grosir || null, v.min_grosir || null]
+        );
       }
     }
 

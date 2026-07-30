@@ -53,7 +53,7 @@ export default function PelangganLayout({ children }: { children: React.ReactNod
     <div className="bg-[#f8f9fa] dark:bg-[#0f172a] min-h-screen font-sans text-[#191c1d] dark:text-[#f8fafc] transition-colors duration-300">
       
       {/* --- 1. NAVBAR ATAS (Statis) --- */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-16 max-w-[428px] mx-auto bg-white dark:bg-[#1e293b] border-b border-[#cfc2d4]/30 dark:border-slate-700/80 shadow-sm transition-colors duration-300">
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 md:px-8 h-16 w-full max-w-5xl mx-auto bg-white dark:bg-[#1e293b] border-b border-[#cfc2d4]/30 dark:border-slate-700/80 shadow-sm transition-colors duration-300">
         {pathname !== '/beranda' ? (
           <button onClick={() => window.history.back()} className="text-[#500088] dark:text-[#c084fc] p-2 rounded-full hover:bg-[#f3f4f5] dark:hover:bg-slate-700 transition-colors">
             <ArrowLeft size={24} />
@@ -76,12 +76,12 @@ export default function PelangganLayout({ children }: { children: React.ReactNod
 
       {/* --- 2. AREA KONTEN TENAH (Dinamis) --- */}
       {/* pt-16 agar konten tidak tertutup navbar atas, pb-24 agar tidak tertutup menu bawah */}
-      <main className="pt-16 pb-24 max-w-[428px] mx-auto min-h-screen">
+      <main className="pt-16 pb-24 w-full max-w-5xl mx-auto min-h-screen px-4 md:px-8">
         {children}
       </main>
 
       {/* --- 3. NAVIGASI BAWAH (Animated Notch Cutout) --- */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 h-[70px] max-w-[428px] mx-auto bg-white dark:bg-[#1e293b] rounded-t-[32px] border-t border-[#cfc2d4]/30 dark:border-slate-700/50 transition-colors duration-300">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 h-[70px] w-full max-w-5xl mx-auto bg-white dark:bg-[#1e293b] md:rounded-t-[32px] rounded-t-3xl border-t border-[#cfc2d4]/30 dark:border-slate-700/50 transition-colors duration-300">
         <div className="relative w-full h-full flex items-center">
           
           {/* Moving Notch (The Cutout) */}

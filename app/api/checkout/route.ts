@@ -4,7 +4,7 @@ import { query } from '@/lib/mysql';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId, fullName, whatsapp, address, ongkir = 0, items, kode_voucher, potongan_harga = 0 } = body;
+    const { userId, fullName, whatsapp, address, ongkir = 0, items, kode_voucher, potongan_harga = 0, latitude, longitude } = body;
 
     // VERIFIKASI WA DENGAN DATABASE
     if (!userId) {
@@ -135,9 +135,9 @@ export async function POST(request: Request) {
     // 4. Simpan pesanan ke MySQL
     const pesananResult: any = await query(
       `INSERT INTO pesanan 
-        (nama_pelanggan, whatsapp, alamat, total_harga, kode_voucher, potongan_harga, status) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [fullName, whatsapp, address, totalHargaAktual, kodeVoucherFinal, potonganFinal, 'Menunggu']
+        (nama_pelanggan, whatsapp, alamat, total_harga, kode_voucher, potongan_harga, status, latitude, longitude) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [fullName, whatsapp, address, totalHargaAktual, kodeVoucherFinal, potonganFinal, 'Menunggu', latitude || null, longitude || null]
     );
     const pesanan_id = pesananResult.insertId;
 
